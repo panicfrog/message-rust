@@ -1,6 +1,7 @@
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
 use std::collections::{HashMap, HashSet};
+use crate::chat_model::{ChatMessageType, ChatMessage};
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -144,21 +145,45 @@ impl Handler<Disconnect> for ChatServer {
 impl Handler<RoomMessage> for ChatServer {
     type Result = ();
     fn handle(&mut self, msg: RoomMessage, _: &mut Self::Context) {
-        self.send_message(&msg.room, msg.msg.as_str(), msg.id);
+        let room = msg.room.clone();
+        let skip_id = msg.id.clone();
+        let send_msg = ChatMessage{
+            from: Some(msg.id),
+            style: ChatMessageType::RoomMessage(msg.room),
+            content: msg.msg,
+            message_id: None,
+        };
+        let send_str = serde_json::to_string(&send_msg).unwrap();
+        self.send_message(&room, send_str.as_str(), skip_id);
     }
 }
 
 impl Handler<P2PMessage> for ChatServer {
     type Result = ();
     fn handle(&mut self, msg: P2PMessage, _: &mut Self::Context) {
-        self.send_p2p_message(&msg.other_id, msg.msg.as_str());
+        let other_id = msg.other_id.clone();
+        let send_msg = ChatMessage{
+            from: Some(msg.id),
+            style: ChatMessageType::OneToOne(msg.other_id),
+            content: msg.msg,
+            message_id: None,
+        };
+        let send_str = serde_json::to_string(&send_msg).unwrap();
+        self.send_p2p_message(&other_id, send_str.as_str());
     }
 }
 
 impl Handler<BoardcastMessage> for ChatServer {
     type Result = ();
     fn handle(&mut self, msg: BoardcastMessage, _: &mut Self::Context) {
-        self.send_boardcast(&msg.msg.as_str(), msg.id);
+        let send_msg = ChatMessage{
+            from: Some(msg.id),
+            style: ChatMessageType::Broadcast,
+            content: msg.msg,
+            message_id: None,
+        };
+        let send_str = serde_json::to_string(&send_msg).unwrap();
+        self.send_boardcast(&send_str.as_str(), send_msg.from.unwrap());
     }
 }
 

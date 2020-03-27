@@ -3,6 +3,7 @@ use actix_web::{web, App, HttpServer};
 
 mod chat_route;
 mod chat_server;
+mod chat_model;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {

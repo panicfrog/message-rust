@@ -1,8 +1,8 @@
 use crate::chat_server;
+use crate::chat_model::{ChatMessage, ChatMessageType};
 use actix::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -19,37 +19,6 @@ pub async fn chat_route(
         addr: srv.get_ref().clone(),
     };
     ws::start(session, &req, stream)
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "t", content = "c")]
-enum ChatMessageType {
-    // chat message
-    OneToOne(usize),
-    RoomMessage(String),
-    Broadcast,
-    // action
-    Join(String),
-    // message ack
-    Ack,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct ChatMessage {
-    style: ChatMessageType,
-    content: String,
-    message_id: String,
-}
-
-impl ChatMessage {
-    fn ack(message_id: String) -> Self {
-        ChatMessage {
-            style: ChatMessageType::Ack,
-            content: "".to_owned(),
-            message_id: message_id,
-        }
-    }
 }
 
 struct WsChatSession {
@@ -88,7 +57,8 @@ impl Actor for WsChatSession {
 
 impl Handler<chat_server::Message> for WsChatSession {
     type Result = ();
-    fn handle(&mut self, msg: chat_server::Message, ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: chat_server::Message, ctx: &mut Self::Context)
+    {
         ctx.text(msg.text)
     }
 }
@@ -122,9 +92,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 msg: msg.content,
                                 other_id: id,
                             });
-                            let ack =
-                                serde_json::to_string(&ChatMessage::ack(msg.message_id)).unwrap();
-                            ctx.text(ack);
+                            if let Some(message_id) = msg.message_id {
+                                let ack =
+                                    serde_json::to_string(&ChatMessage::ack(message_id)).unwrap();
+                                ctx.text(ack);
+                            }
                         }
                         ChatMessageType::RoomMessage(room) => {
                             self.addr.do_send(chat_server::RoomMessage {
@@ -132,27 +104,33 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 msg: msg.content,
                                 room: room,
                             });
-                            let ack =
-                                serde_json::to_string(&ChatMessage::ack(msg.message_id)).unwrap();
-                            ctx.text(ack);
+                            if let Some(message_id) = msg.message_id {
+                                let ack =
+                                    serde_json::to_string(&ChatMessage::ack(message_id)).unwrap();
+                                ctx.text(ack);
+                            }
                         }
                         ChatMessageType::Broadcast => {
                             self.addr.do_send(chat_server::BoardcastMessage {
                                 id: self.id,
                                 msg: msg.content,
                             });
-                            let ack =
-                                serde_json::to_string(&ChatMessage::ack(msg.message_id)).unwrap();
-                            ctx.text(ack);
+                            if let Some(message_id) = msg.message_id {
+                                let ack =
+                                    serde_json::to_string(&ChatMessage::ack(message_id)).unwrap();
+                                ctx.text(ack);
+                            }
                         }
                         ChatMessageType::Join(room) => {
                             self.addr.do_send(chat_server::Join {
                                 id: self.id,
                                 name: room,
                             });
-                            let ack =
-                                serde_json::to_string(&ChatMessage::ack(msg.message_id)).unwrap();
-                            ctx.text(ack);
+                            if let Some(message_id) = msg.message_id {
+                                let ack =
+                                    serde_json::to_string(&ChatMessage::ack(message_id)).unwrap();
+                                ctx.text(ack);
+                            }
                         }
                         _ => (),
                     },
