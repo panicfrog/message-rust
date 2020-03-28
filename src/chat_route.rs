@@ -89,7 +89,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         ChatMessageType::OneToOne(id) => {
                             self.addr.do_send(chat_server::P2PMessage {
                                 id: self.id,
-                                msg: msg.content,
+                                msg: msg.content.unwrap_or_default(),
                                 other_id: id,
                             });
                             if let Some(message_id) = msg.message_id {
@@ -101,7 +101,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         ChatMessageType::RoomMessage(room) => {
                             self.addr.do_send(chat_server::RoomMessage {
                                 id: self.id,
-                                msg: msg.content,
+                                msg: msg.content.unwrap_or_default(),
                                 room: room,
                             });
                             if let Some(message_id) = msg.message_id {
@@ -113,7 +113,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         ChatMessageType::Broadcast => {
                             self.addr.do_send(chat_server::BoardcastMessage {
                                 id: self.id,
-                                msg: msg.content,
+                                msg: msg.content.unwrap_or_default(),
                             });
                             if let Some(message_id) = msg.message_id {
                                 let ack =

@@ -150,7 +150,7 @@ impl Handler<RoomMessage> for ChatServer {
         let send_msg = ChatMessage{
             from: Some(msg.id),
             style: ChatMessageType::RoomMessage(msg.room),
-            content: msg.msg,
+            content: Some(msg.msg),
             message_id: None,
         };
         let send_str = serde_json::to_string(&send_msg).unwrap();
@@ -165,7 +165,7 @@ impl Handler<P2PMessage> for ChatServer {
         let send_msg = ChatMessage{
             from: Some(msg.id),
             style: ChatMessageType::OneToOne(msg.other_id),
-            content: msg.msg,
+            content: Some(msg.msg),
             message_id: None,
         };
         let send_str = serde_json::to_string(&send_msg).unwrap();
@@ -179,7 +179,7 @@ impl Handler<BoardcastMessage> for ChatServer {
         let send_msg = ChatMessage{
             from: Some(msg.id),
             style: ChatMessageType::Broadcast,
-            content: msg.msg,
+            content: Some(msg.msg),
             message_id: None,
         };
         let send_str = serde_json::to_string(&send_msg).unwrap();

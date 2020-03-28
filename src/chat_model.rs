@@ -18,7 +18,8 @@ pub struct ChatMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<usize>,
     pub style: ChatMessageType,
-    pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message_id: Option<String>,
 }
@@ -28,7 +29,7 @@ impl ChatMessage {
         ChatMessage {
             from: None,
             style: ChatMessageType::Ack,
-            content: "".to_owned(),
+            content: None,
             message_id: Some(message_id),
         }
     }
