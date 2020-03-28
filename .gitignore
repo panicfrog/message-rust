@@ -170,4 +170,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+/mysql
+/redis
 # End of https://www.gitignore.io/api/rust,linux,macos,clion,windows
