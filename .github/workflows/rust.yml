@@ -1,0 +1,15 @@
+on: [push]
+
+name: ARMv8 build
+
+jobs:
+  linux_arm8:
+    name: Linux ARMv8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-unknown-linux-musl
+          override: true
