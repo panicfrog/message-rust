@@ -3,6 +3,7 @@
 # shellcheck disable=SC2164
 CURRENT_FOLDER=$(cd "$(dirname "$0")";pwd)
 docker run --name chat-redis \
+  -p 6379:6379 \
   -v $CURRENT_FOLDER/redis/data:/data:rw \
   -v $CURRENT_FOLDER/redis/redis.conf:/etc/redis/redis.conf:ro \
   --privileged=true \
