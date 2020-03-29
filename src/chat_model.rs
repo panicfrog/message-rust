@@ -8,7 +8,7 @@ pub enum ChatMessageType {
     Broadcast,
     // action
     Join(String),
-    // message ack
+    // message  ack
     Ack,
 }
 
