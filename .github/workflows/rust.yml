@@ -5,7 +5,7 @@ name: ARMv8 build
 jobs:
   linux_arm8:
     name: Linux ARMv8
-    runs-on: debain-latest
+    runs-on: debian-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
