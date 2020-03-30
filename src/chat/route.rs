@@ -1,5 +1,5 @@
-use crate::chat_server;
-use crate::chat_model::{ChatMessage, ChatMessageType};
+use super::server;
+use super::model::{ChatMessage, ChatMessageType};
 use actix::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
@@ -11,7 +11,7 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 pub async fn chat_route(
     req: HttpRequest,
     stream: web::Payload,
-    srv: web::Data<Addr<chat_server::ChatServer>>,
+    srv: web::Data<Addr<server::ChatServer>>,
 ) -> Result<HttpResponse, Error> {
     let session = WsChatSession {
         id: 0,
@@ -24,7 +24,7 @@ pub async fn chat_route(
 struct WsChatSession {
     id: usize,
     hb: Instant,
-    addr: Addr<chat_server::ChatServer>,
+    addr: Addr<server::ChatServer>,
 }
 
 impl Actor for WsChatSession {
@@ -35,7 +35,7 @@ impl Actor for WsChatSession {
         // TODO wait for auth, if unauth close connecting
         let addr = ctx.address();
         self.addr
-            .send(chat_server::Connect {
+            .send(server::Connect {
                 addr: addr.recipient(),
             })
             .into_actor(self)
@@ -50,14 +50,14 @@ impl Actor for WsChatSession {
     }
 
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
-        self.addr.do_send(chat_server::Disconnect { id: self.id });
+        self.addr.do_send(server::Disconnect { id: self.id });
         Running::Stop
     }
 }
 
-impl Handler<chat_server::Message> for WsChatSession {
+impl Handler<server::Message> for WsChatSession {
     type Result = ();
-    fn handle(&mut self, msg: chat_server::Message, ctx: &mut Self::Context)
+    fn handle(&mut self, msg: server::Message, ctx: &mut Self::Context)
     {
         ctx.text(msg.text)
     }
@@ -87,7 +87,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                 match msg {
                     Ok(msg) => match msg.style {
                         ChatMessageType::OneToOne(id) => {
-                            self.addr.do_send(chat_server::P2PMessage {
+                            self.addr.do_send(server::P2PMessage {
                                 id: self.id,
                                 msg: msg.content.unwrap_or_default(),
                                 other_id: id,
@@ -99,7 +99,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             }
                         }
                         ChatMessageType::RoomMessage(room) => {
-                            self.addr.do_send(chat_server::RoomMessage {
+                            self.addr.do_send(server::RoomMessage {
                                 id: self.id,
                                 msg: msg.content.unwrap_or_default(),
                                 room: room,
@@ -111,7 +111,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             }
                         }
                         ChatMessageType::Broadcast => {
-                            self.addr.do_send(chat_server::BoardcastMessage {
+                            self.addr.do_send(server::BoardcastMessage {
                                 id: self.id,
                                 msg: msg.content.unwrap_or_default(),
                             });
@@ -122,7 +122,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             }
                         }
                         ChatMessageType::Join(room) => {
-                            self.addr.do_send(chat_server::Join {
+                            self.addr.do_send(server::Join {
                                 id: self.id,
                                 name: room,
                             });

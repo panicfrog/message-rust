@@ -1,7 +1,7 @@
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
 use std::collections::{HashMap, HashSet};
-use crate::chat_model::{ChatMessageType, ChatMessage};
+use super::model::{ChatMessageType, ChatMessage};
 
 #[derive(Message)]
 #[rtype(result = "()")]
