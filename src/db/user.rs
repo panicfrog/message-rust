@@ -1,4 +1,4 @@
-use super::error;
+use super::error::{deal_insert_result, deal_query_result, deal_update_result, Error};
 use super::establish_connection;
 use super::schema::users;
 use chrono::NaiveDateTime;
@@ -22,7 +22,7 @@ struct InsertableUser {
     passwd: String,
 }
 
-pub fn add(u_name: String, pd: String) -> Result<(), error::Error> {
+pub fn add(u_name: String, pd: String) -> Result<(), Error> {
     use super::schema::users::dsl::*;
     let connection = establish_connection();
     let new_user = InsertableUser {
@@ -32,77 +32,35 @@ pub fn add(u_name: String, pd: String) -> Result<(), error::Error> {
     let r = diesel::insert_into(users)
         .values(&new_user)
         .execute(&connection);
-    match r {
-        Ok(s) => {
-            if s == 1 {
-                Ok(())
-            } else {
-                Err(error::Error::InsertNumError)
-            }
-        }
-        Err(e) => {
-            if let diesel::result::Error::DatabaseError(UniqueViolation, _) = e {
-                Err(error::Error::DuplicateData(e.to_string()))
-            } else {
-                Err(error::Error::WapperError(e.to_string()))
-            }
-        }
-    }
+    deal_insert_result(r)
 }
 
-pub fn verification(u_name: &str, pd: &str) -> Result<(), error::Error> {
+pub fn verification(u_name: &str, pd: &str) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
     let connection = establish_connection();
     let r: QueryResult<QueryUser> = users
         .filter(user_name.eq(u_name))
         .filter(passwd.eq(pd))
         .first(&connection);
-    match r {
-        Ok(u) => Ok(()),
-        Err(e) => {
-            if let diesel::NotFound = e {
-                Err(error::Error::NotFound)
-            } else {
-                Err(error::Error::WapperError(e.to_string()))
-            }
-        }
-    }
+    deal_query_result(r)
 }
 
-fn find_with_username(u_name: &str) -> Result<QueryUser, error::Error> {
+fn find_with_username(u_name: &str) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
     let connection = establish_connection();
-    let u: QueryResult<QueryUser> = users.filter(user_name.eq(u_name)).first(&connection);
-    match u {
-        Ok(u) => Ok(u),
-        Err(e) => {
-            if let diesel::NotFound = e {
-                Err(error::Error::NotFound)
-            } else {
-                Err(error::Error::WapperError(e.to_string()))
-            }
-        }
-    }
+    let r: QueryResult<QueryUser> = users.filter(user_name.eq(u_name)).first(&connection);
+    deal_query_result(r)
 }
 
-fn find_with_id(u_id: i32) -> Result<QueryUser, error::Error> {
+fn find_with_id(u_id: i32) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
 
     let connection = establish_connection();
-    let u: QueryResult<QueryUser> = users.filter(user_id.eq(u_id)).first(&connection);
-    match u {
-        Ok(u) => Ok(u),
-        Err(e) => {
-            if let diesel::NotFound = e {
-                Err(error::Error::NotFound)
-            } else {
-                Err(error::Error::WapperError(e.to_string()))
-            }
-        }
-    }
+    let r: QueryResult<QueryUser> = users.filter(user_id.eq(u_id)).first(&connection);
+    deal_query_result(r)
 }
 
-pub fn change_passwd(u_name: String, pd: String) -> Result<(), error::Error> {
+pub fn change_passwd(u_name: String, pd: String) -> Result<(), Error> {
     use super::schema::users::dsl::*;
     let u = find_with_username(u_name.as_str());
     match u {
@@ -115,22 +73,7 @@ pub fn change_passwd(u_name: String, pd: String) -> Result<(), error::Error> {
                 let r = diesel::update(users.find(_u.user_id))
                     .set(passwd.eq(pd))
                     .execute(&connection);
-                match r {
-                    Ok(s) => {
-                        if s == 1 {
-                            Ok(())
-                        } else {
-                            Err(error::Error::NotFound)
-                        }
-                    }
-                    Err(e) => {
-                        if let diesel::NotFound = e {
-                            Err(error::Error::NotFound)
-                        } else {
-                            Err(error::Error::WapperError(e.to_string()))
-                        }
-                    }
-                }
+                deal_update_result(r)
             }
         }
         Err(e) => Err(e),
