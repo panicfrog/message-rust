@@ -1,7 +1,7 @@
+use super::model::{ChatMessage, ChatMessageType};
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
 use std::collections::{HashMap, HashSet};
-use super::model::{ChatMessageType, ChatMessage};
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -147,7 +147,7 @@ impl Handler<RoomMessage> for ChatServer {
     fn handle(&mut self, msg: RoomMessage, _: &mut Self::Context) {
         let room = msg.room.clone();
         let skip_id = msg.id.clone();
-        let send_msg = ChatMessage{
+        let send_msg = ChatMessage {
             from: Some(msg.id),
             style: ChatMessageType::RoomMessage(msg.room),
             content: Some(msg.msg),
@@ -162,7 +162,7 @@ impl Handler<P2PMessage> for ChatServer {
     type Result = ();
     fn handle(&mut self, msg: P2PMessage, _: &mut Self::Context) {
         let other_id = msg.other_id.clone();
-        let send_msg = ChatMessage{
+        let send_msg = ChatMessage {
             from: Some(msg.id),
             style: ChatMessageType::OneToOne(msg.other_id),
             content: Some(msg.msg),
@@ -176,7 +176,7 @@ impl Handler<P2PMessage> for ChatServer {
 impl Handler<BoardcastMessage> for ChatServer {
     type Result = ();
     fn handle(&mut self, msg: BoardcastMessage, _: &mut Self::Context) {
-        let send_msg = ChatMessage{
+        let send_msg = ChatMessage {
             from: Some(msg.id),
             style: ChatMessageType::Broadcast,
             content: Some(msg.msg),

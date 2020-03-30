@@ -1,5 +1,5 @@
-use super::server;
 use super::model::{ChatMessage, ChatMessageType};
+use super::server;
 use actix::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
@@ -57,8 +57,7 @@ impl Actor for WsChatSession {
 
 impl Handler<server::Message> for WsChatSession {
     type Result = ();
-    fn handle(&mut self, msg: server::Message, ctx: &mut Self::Context)
-    {
+    fn handle(&mut self, msg: server::Message, ctx: &mut Self::Context) {
         ctx.text(msg.text)
     }
 }
