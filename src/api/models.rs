@@ -43,21 +43,21 @@ where
 }
 
 pub fn success_nodata(message: &str) -> HttpResponse {
-    UserSuccessResponse {
+    let result: UserSuccessResponse<String> = UserSuccessResponse {
         message: String::from(message),
         state: UserResponseState::Success,
-        data: None
-    }
-    .response()
+        data: None,
+    };
+    result.response()
 }
 
 pub fn fail(message: &str) -> HttpResponse {
-    UserSuccessResponse {
+    let result: UserSuccessResponse<String> = UserSuccessResponse {
         message: String::from(message),
         state: UserResponseState::Failed,
-        data: None
-    }
-    .response()
+        data: None,
+    };
+    result.response()
 }
 
 /*
