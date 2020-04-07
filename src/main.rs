@@ -42,6 +42,11 @@ async fn main() -> std::io::Result<()> {
             .data(redis_pool.clone())
             .wrap(middleware::Logger::default())
             .wrap(ErrorHandlers::new().handler(http::StatusCode::BAD_REQUEST, write_400))
+            .service(
+               web::scope("/api/v1")
+                   .route("/user/register", web::post().to(api::user::register))
+                   .route("/user/login", web::post().to(api::user::login))
+            )
             .service(web::resource("/ws").to(route::chat_route))
     })
     .bind("127.0.0.1:8080")?

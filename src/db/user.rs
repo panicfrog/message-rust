@@ -22,26 +22,26 @@ struct InsertableUser {
     passwd: String,
 }
 
-pub fn add(u_name: String, pd: String) -> Result<(), Error> {
+pub fn add(u_name: String, pd: String, conn: &MysqlConnection) -> Result<(), Error> {
     use super::schema::users::dsl::*;
-    let connection = establish_connection();
+    // let connection = establish_connection();
     let new_user = InsertableUser {
         user_name: u_name,
         passwd: pd,
     };
     let r = diesel::insert_into(users)
         .values(&new_user)
-        .execute(&connection);
+        .execute(conn);
     deal_insert_result(r)
 }
 
-pub fn verification(u_name: &str, pd: &str) -> Result<QueryUser, Error> {
+pub fn verification(u_name: &str, pd: &str, conn: &MysqlConnection) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
-    let connection = establish_connection();
+    // let connection = establish_connection();
     let r: QueryResult<QueryUser> = users
         .filter(user_name.eq(u_name))
         .filter(passwd.eq(pd))
-        .first(&connection);
+        .first(conn);
     deal_query_result(r)
 }
 
