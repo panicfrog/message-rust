@@ -29,9 +29,7 @@ pub fn add(u_name: String, pd: String, conn: &MysqlConnection) -> Result<(), Err
         user_name: u_name,
         passwd: pd,
     };
-    let r = diesel::insert_into(users)
-        .values(&new_user)
-        .execute(conn);
+    let r = diesel::insert_into(users).values(&new_user).execute(conn);
     deal_insert_result(r)
 }
 

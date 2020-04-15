@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 actix = "0.9"
 actix-web = "2.0.0"
-actix-rt = "1.0.0"
+actix-rt = "=1.0.0"
 actix-web-actors = "2.0.0"
 env_logger = "0.7.1"
 rand = "0.7.3"
@@ -24,3 +24,5 @@ chrono = "0.4.11"
 
 redis = { version = "0.15.1", features = ["r2d2"]}
 r2d2_redis = "0.13.0"
+
+base64 = "0.12.0"

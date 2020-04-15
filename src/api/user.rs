@@ -1,22 +1,38 @@
-use serde::Deserialize;
 use actix_web::{web, HttpResponse, Result};
-use diesel::{ r2d2::ConnectionManager, MysqlConnection };
+use diesel::{r2d2::ConnectionManager, MysqlConnection};
+use r2d2_redis::RedisConnectionManager;
+use serde::{Deserialize, Serialize};
 
-use crate::db::user::{ add, verification };
 use super::models::success_nodata;
+use crate::db::user::{add, verification};
+
+use crate::cache::token;
+use std::mem;
+use crate::api::models::{success_with_data, fail};
 
 type MysqlDbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
+type RedisPool = r2d2_redis::r2d2::Pool<RedisConnectionManager>;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct User {
     user_name: String,
-    passwd: String
+    passwd: String,
+}
+
+impl token::Identifier for User {
+    fn id(&self) -> String {
+        self.user_name.clone()
+    }
 }
 
 // 注册
-pub async fn register(pool: web::Data<MysqlDbPool>, user: web::Json<User>) -> Result<HttpResponse> {
+pub async fn register(
+    pool: web::Data<MysqlDbPool>,
+    user: web::Json<User>,
+) -> Result<HttpResponse> {
     let conn = pool.get().expect("couldn't get db connection from pool");
-    web::block(move || add(user.user_name.clone(), user.passwd.clone(), &conn))
+    let (username, password) = (user.user_name.clone(), user.passwd.clone());
+    web::block(move || add(username, password, &conn))
         .await
         .map_err(|e| {
             eprintln!("{}", e);
@@ -27,16 +43,28 @@ pub async fn register(pool: web::Data<MysqlDbPool>, user: web::Json<User>) -> Re
 }
 
 // 登录
-pub async fn login(pool: web::Data<MysqlDbPool>, user: web::Json<User>) -> Result<HttpResponse> {
+pub async fn login(pool: web::Data<MysqlDbPool>,
+                   user: web::Json<User>,
+                   redis_pool: web::Data<RedisPool>,) -> Result<HttpResponse> {
     let conn = pool.get().expect("couldn't get db connection from pool");
-    web::block(move || verification(user.user_name.as_str(), user.passwd.as_str(), &conn))
+    let (username, password) = (user.user_name.clone(), user.passwd.clone());
+    let (_username, _password) = (username.clone(), password.clone());
+    web::block(move || verification(_username.as_str(), _password.as_str(), &conn))
         .await
         .map_err(|e| {
             eprintln!("{}", e);
             // TODO 错误处理
             HttpResponse::InternalServerError().finish()
         })?;
-
-    // TODO 登录成功需要返回token
-    Ok(success_nodata("登录成功"))
+    let redis_conn = &mut redis_pool
+        .get()
+        .expect("countn't get redis connection from pool");
+    let u = User {
+        user_name: username,
+        passwd: password,
+    };
+    match token::store_token(u, redis_conn) {
+        Ok(t) => Ok(success_with_data("登录成功", t)),
+        Err(_) => Err(actix_web::error::ErrorInternalServerError("reids保存token错误"))
+    }
 }
