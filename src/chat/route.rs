@@ -4,20 +4,28 @@ use actix::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use std::time::{Duration, Instant};
+use serde::Deserialize;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
+
+#[derive(Deserialize)]
+struct WebsocketInfo {
+    token: String,
+}
 
 pub async fn chat_route(
     req: HttpRequest,
     stream: web::Payload,
     srv: web::Data<Addr<server::ChatServer>>,
+    token: web::Query<Info>,
 ) -> Result<HttpResponse, Error> {
     let session = WsChatSession {
         id: 0,
         hb: Instant::now(),
         addr: srv.get_ref().clone(),
     };
+    // TODO: add token at end of url
     ws::start(session, &req, stream)
 }
 
@@ -25,6 +33,8 @@ struct WsChatSession {
     id: usize,
     hb: Instant,
     addr: Addr<server::ChatServer>,
+    token: String,
+    user: String,
 }
 
 impl Actor for WsChatSession {

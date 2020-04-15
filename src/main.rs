@@ -1,11 +1,13 @@
 #[macro_use]
 extern crate diesel;
+extern crate base64;
 extern crate dotenv;
 extern crate r2d2_redis;
-extern crate base64;
 
 use actix::*;
-use actix_web::{http, middleware, middleware::errhandlers::ErrorHandlers, web, App, HttpServer, cookie};
+use actix_web::{
+    cookie, http, middleware, middleware::errhandlers::ErrorHandlers, web, App, HttpServer,
+};
 use api::route::write_400;
 use chat::{route, server};
 use diesel::{r2d2::ConnectionManager, MysqlConnection};
@@ -19,7 +21,10 @@ mod db;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
-    env::set_var("RUST_LOG", "actix_web=debug,actix_server=info,actix_redis=info");
+    env::set_var(
+        "RUST_LOG",
+        "actix_web=debug,actix_server=info,actix_redis=info",
+    );
     env_logger::init();
     dotenv::dotenv().ok();
 

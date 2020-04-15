@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 use super::models::success_nodata;
 use crate::db::user::{add, verification};
 
+use crate::api::models::{fail, success_with_data};
 use crate::cache::token;
 use std::mem;
-use crate::api::models::{success_with_data, fail};
 
 type MysqlDbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 type RedisPool = r2d2_redis::r2d2::Pool<RedisConnectionManager>;
@@ -26,10 +26,7 @@ impl token::Identifier for User {
 }
 
 // 注册
-pub async fn register(
-    pool: web::Data<MysqlDbPool>,
-    user: web::Json<User>,
-) -> Result<HttpResponse> {
+pub async fn register(pool: web::Data<MysqlDbPool>, user: web::Json<User>) -> Result<HttpResponse> {
     let conn = pool.get().expect("couldn't get db connection from pool");
     let (username, password) = (user.user_name.clone(), user.passwd.clone());
     web::block(move || add(username, password, &conn))
@@ -43,9 +40,11 @@ pub async fn register(
 }
 
 // 登录
-pub async fn login(pool: web::Data<MysqlDbPool>,
-                   user: web::Json<User>,
-                   redis_pool: web::Data<RedisPool>,) -> Result<HttpResponse> {
+pub async fn login(
+    pool: web::Data<MysqlDbPool>,
+    user: web::Json<User>,
+    redis_pool: web::Data<RedisPool>,
+) -> Result<HttpResponse> {
     let conn = pool.get().expect("couldn't get db connection from pool");
     let (username, password) = (user.user_name.clone(), user.passwd.clone());
     let (_username, _password) = (username.clone(), password.clone());
@@ -65,6 +64,8 @@ pub async fn login(pool: web::Data<MysqlDbPool>,
     };
     match token::store_token(u, redis_conn) {
         Ok(t) => Ok(success_with_data("登录成功", t)),
-        Err(_) => Err(actix_web::error::ErrorInternalServerError("reids保存token错误"))
+        Err(_) => Err(actix_web::error::ErrorInternalServerError(
+            "reids保存token错误",
+        )),
     }
 }
