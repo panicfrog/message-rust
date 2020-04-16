@@ -15,8 +15,8 @@ type RedisPool = r2d2_redis::r2d2::Pool<RedisConnectionManager>;
 
 #[derive(Deserialize, Serialize)]
 pub struct User {
-    user_name: String,
-    passwd: String,
+    pub user_name: String,
+    pub passwd: String,
 }
 
 impl token::Identifier for User {
@@ -62,7 +62,7 @@ pub async fn login(
         user_name: username,
         passwd: password,
     };
-    match token::store_token(u, redis_conn) {
+    match token::store_value(u, redis_conn) {
         Ok(t) => Ok(success_with_data("登录成功", t)),
         Err(_) => Err(actix_web::error::ErrorInternalServerError(
             "reids保存token错误",

@@ -1,32 +1,47 @@
 use super::model::{ChatMessage, ChatMessageType};
 use super::server;
+use crate::cache::token::verification_value;
 use actix::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use std::time::{Duration, Instant};
+use r2d2_redis::RedisConnectionManager;
 use serde::Deserialize;
+use std::time::{Duration, Instant};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
+type RedisPool = r2d2_redis::r2d2::Pool<RedisConnectionManager>;
+
 #[derive(Deserialize)]
-struct WebsocketInfo {
-    token: String,
+pub struct WebsocketInfo {
+    pub token: String,
 }
 
 pub async fn chat_route(
     req: HttpRequest,
     stream: web::Payload,
     srv: web::Data<Addr<server::ChatServer>>,
-    token: web::Query<Info>,
+    info: web::Query<WebsocketInfo>,
+    redis_pool: web::Data<RedisPool>,
 ) -> Result<HttpResponse, Error> {
-    let session = WsChatSession {
-        id: 0,
-        hb: Instant::now(),
-        addr: srv.get_ref().clone(),
-    };
-    // TODO: add token at end of url
-    ws::start(session, &req, stream)
+    let redis_conn = &mut redis_pool
+        .get()
+        .expect("countn't get redis connection from pool");
+    let v = verification_value::<crate::api::user::User>(info.token.clone(), redis_conn);
+    match v {
+        Ok(id) => {
+            let session = WsChatSession {
+                id: 0,
+                hb: Instant::now(),
+                addr: srv.get_ref().clone(),
+                token: info.token.clone(),
+                user: id,
+            };
+            ws::start(session, &req, stream)
+        }
+        Err(_) => Err(actix_web::error::ErrorUnauthorized("token invalid")),
+    }
 }
 
 struct WsChatSession {
