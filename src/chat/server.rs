@@ -1,4 +1,4 @@
-use super::model::{ChatMessage, ChatMessageType};
+use super::model::{ChatMessage, ChatMessageType, ChatNameMessage, ChatNameMessageType};
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
 use std::collections::{HashMap, HashSet};
@@ -13,6 +13,7 @@ pub struct Message {
 #[rtype(usize)]
 pub struct Connect {
     pub addr: Recipient<Message>,
+    pub name: String,
 }
 
 #[derive(Message)]
@@ -31,6 +32,14 @@ pub struct RoomMessage {
 
 #[derive(Message)]
 #[rtype(result = "()")]
+pub struct StrRoomMessage {
+    pub id: String,
+    pub msg: String,
+    pub room: String,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
 pub struct P2PMessage {
     pub id: usize,
     pub msg: String,
@@ -39,8 +48,23 @@ pub struct P2PMessage {
 
 #[derive(Message)]
 #[rtype(result = "()")]
+pub struct StrP2PMessage {
+    pub id: String,
+    pub msg: String,
+    pub other_id: String,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
 pub struct BoardcastMessage {
     pub id: usize,
+    pub msg: String,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct StrBoardcastMessage {
+    pub id: String,
     pub msg: String,
 }
 
@@ -57,8 +81,10 @@ pub struct Join {
     pub name: String,
 }
 
+struct Session (Recipient<Message>, String);
+
 pub struct ChatServer {
-    sessions: HashMap<usize, Recipient<Message>>,
+    sessions: HashMap<usize, Session>,
     rooms: HashMap<String, HashSet<usize>>,
     rng: ThreadRng,
 }
@@ -79,8 +105,22 @@ impl ChatServer {
         if let Some(sessions) = self.rooms.get(room) {
             for id in sessions {
                 if *id != skip_id {
-                    if let Some(addr) = self.sessions.get(id) {
-                        let _ = addr.do_send(Message {
+                    if let Some(sess) = self.sessions.get(id) {
+                        let _ = sess.0.do_send(Message {
+                            text: message.to_owned(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    fn send_namebase_message(&self, room: &str, message: &str, skip_id: String) {
+        if let Some(sessions) = self.rooms.get(room) {
+            for id in sessions {
+                if let Some(sess) = self.sessions.get(id) {
+                    if sess.1 != skip_id {
+                        let _ = sess.0.do_send(Message {
                             text: message.to_owned(),
                         });
                     }
@@ -90,20 +130,40 @@ impl ChatServer {
     }
 
     fn send_boardcast(&self, message: &str, skip_id: usize) {
-        for (id, addr) in &self.sessions {
+        for (id, sees) in &self.sessions {
             if *id != skip_id {
-                let _ = addr.do_send(Message {
+                let _ = sees.0.do_send(Message {
                     text: message.to_owned(),
                 });
             }
         }
     }
 
+    fn send_namebase_boardcart(&self, message: &str, skip_id: String) {
+        for (_, sess) in &self.sessions {
+            if sess.1 != skip_id {
+                let _ = sess.0.do_send(Message {
+                   text: message.to_owned(),
+                });
+            }
+        }
+    }
+
     fn send_p2p_message(&self, id: &usize, message: &str) {
-        if let Some(addr) = self.sessions.get(id) {
-            let _ = addr.do_send(Message {
+        if let Some(sess) = self.sessions.get(id) {
+            let _ = sess.0.do_send(Message {
                 text: message.to_owned(),
             });
+        }
+    }
+
+    fn send_namebase_p2p_message(&self, id: String, message: &str) {
+        for (_, sess) in &self.sessions {
+            if sess.1 == id {
+                let _ = sess.0.do_send(Message {
+                   text: message.to_owned(),
+                });
+            }
         }
     }
 }
@@ -118,7 +178,7 @@ impl Handler<Connect> for ChatServer {
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
         println!("Someone joined");
         let id = self.rng.gen::<usize>();
-        self.sessions.insert(id, msg.addr);
+        self.sessions.insert(id, Session(msg.addr, msg.name));
         id
     }
 }
@@ -158,6 +218,22 @@ impl Handler<RoomMessage> for ChatServer {
     }
 }
 
+impl Handler<StrRoomMessage> for ChatServer {
+    type Result = ();
+    fn handle(&mut self, msg: StrRoomMessage, _: &mut Self::Context) {
+        let room = msg.room.clone();
+        let skip_id = msg.id.clone();
+        let send_msg = ChatNameMessage{
+            from: Some(msg.id),
+            style: ChatNameMessageType::RoomMessage(msg.room),
+            content: Some(msg.msg),
+            message_id: None,
+        };
+        let send_str = serde_json::to_string(&send_msg).unwrap();
+        self.send_namebase_message(&room, send_str.as_str(), skip_id);
+    }
+}
+
 impl Handler<P2PMessage> for ChatServer {
     type Result = ();
     fn handle(&mut self, msg: P2PMessage, _: &mut Self::Context) {
@@ -173,6 +249,21 @@ impl Handler<P2PMessage> for ChatServer {
     }
 }
 
+impl Handler<StrP2PMessage> for ChatServer {
+    type Result = ();
+    fn handle(&mut self, msg: StrP2PMessage, _: &mut Self::Context) {
+        let other_id = msg.other_id.clone();
+        let send_msg = ChatNameMessage {
+            from: Some(msg.id),
+            style: ChatNameMessageType::OneToOne(msg.other_id),
+            content: Some(msg.msg),
+            message_id: None,
+        };
+        let send_str = serde_json::to_string(&send_msg).unwrap();
+        self.send_namebase_p2p_message(other_id, send_str.as_str());
+    }
+}
+
 impl Handler<BoardcastMessage> for ChatServer {
     type Result = ();
     fn handle(&mut self, msg: BoardcastMessage, _: &mut Self::Context) {
@@ -184,6 +275,20 @@ impl Handler<BoardcastMessage> for ChatServer {
         };
         let send_str = serde_json::to_string(&send_msg).unwrap();
         self.send_boardcast(&send_str.as_str(), send_msg.from.unwrap());
+    }
+}
+
+impl Handler<StrBoardcastMessage> for ChatServer {
+    type Result = ();
+    fn handle(&mut self, msg: StrBoardcastMessage, _: &mut Self::Context) {
+        let send_msg = ChatNameMessage {
+            from: Some(msg.id),
+            style: ChatNameMessageType::Broadcast,
+            content: Some(msg.msg),
+            message_id: None,
+        };
+        let send_str = serde_json::to_string(&send_msg).unwrap();
+        self.send_namebase_boardcart(&send_str.as_str(), send_msg.from.unwrap());
     }
 }
 
@@ -205,6 +310,7 @@ impl Handler<Join> for ChatServer {
         let Join { id, name } = msg;
         let mut rooms = Vec::new();
 
+        // TODO: not remove the sesson in rooms
         for (n, sessions) in &mut self.rooms {
             if sessions.remove(&id) {
                 rooms.push(n.to_owned());

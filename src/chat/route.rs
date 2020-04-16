@@ -7,6 +7,7 @@ use actix_web_actors::ws;
 use r2d2_redis::RedisConnectionManager;
 use serde::Deserialize;
 use std::time::{Duration, Instant};
+use crate::chat::model::{ChatNameMessage, ChatNameMessageType};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -57,11 +58,12 @@ impl Actor for WsChatSession {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         self.hb(ctx);
-        // TODO wait for auth, if unauth close connecting
         let addr = ctx.address();
+        let name = self.user.clone();
         self.addr
             .send(server::Connect {
                 addr: addr.recipient(),
+                name,
             })
             .into_actor(self)
             .then(|res, act, ctx| {
@@ -106,13 +108,13 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                 self.hb = Instant::now();
             }
             ws::Message::Text(text) => {
-                let msg: std::result::Result<ChatMessage, serde_json::Error> =
+                let msg: std::result::Result<ChatNameMessage, serde_json::Error> =
                     serde_json::from_str(text.as_str());
                 match msg {
                     Ok(msg) => match msg.style {
-                        ChatMessageType::OneToOne(id) => {
-                            self.addr.do_send(server::P2PMessage {
-                                id: self.id,
+                        ChatNameMessageType::OneToOne(id) => {
+                            self.addr.do_send(server::StrP2PMessage {
+                                id: self.user.clone(),
                                 msg: msg.content.unwrap_or_default(),
                                 other_id: id,
                             });
@@ -122,9 +124,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 ctx.text(ack);
                             }
                         }
-                        ChatMessageType::RoomMessage(room) => {
-                            self.addr.do_send(server::RoomMessage {
-                                id: self.id,
+                        ChatNameMessageType::RoomMessage(room) => {
+                            self.addr.do_send(server::StrRoomMessage{
+                                id: self.user.clone(),
                                 msg: msg.content.unwrap_or_default(),
                                 room: room,
                             });
@@ -134,9 +136,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 ctx.text(ack);
                             }
                         }
-                        ChatMessageType::Broadcast => {
-                            self.addr.do_send(server::BoardcastMessage {
-                                id: self.id,
+                        ChatNameMessageType::Broadcast => {
+                            self.addr.do_send(server::StrBoardcastMessage {
+                                id: self.user.clone(),
                                 msg: msg.content.unwrap_or_default(),
                             });
                             if let Some(message_id) = msg.message_id {
@@ -145,7 +147,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 ctx.text(ack);
                             }
                         }
-                        ChatMessageType::Join(room) => {
+                        ChatNameMessageType::Join(room) => {
                             self.addr.do_send(server::Join {
                                 id: self.id,
                                 name: room,

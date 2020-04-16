@@ -37,7 +37,7 @@ where
             let u = serde_json::from_str::<T>(d_token.as_ref());
             match u {
                 Ok(u) => Ok(Identifier::id(&u)),
-                Err(_) => Err(())
+                Err(_) => Err(()),
             }
         }
         Err(_) => Err(()),
@@ -108,7 +108,6 @@ where
         Err(e) => Err(Error::Other(e)),
     }
 }
-
 
 #[test]
 fn text_encode_decode() {
