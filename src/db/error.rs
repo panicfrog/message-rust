@@ -1,5 +1,4 @@
 use super::schema::users;
-use diesel::deserialize::Queryable;
 use diesel::QueryResult;
 
 #[derive(Debug)]
@@ -42,7 +41,7 @@ pub fn deal_query_result<T>(r: QueryResult<T>) -> Result<T, Error> {
         }
     }
 }
-
+#[allow(dead_code)]
 pub fn deal_update_result(r: QueryResult<usize>) -> Result<(), Error> {
     match r {
         Ok(s) => {

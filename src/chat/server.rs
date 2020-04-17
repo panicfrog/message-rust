@@ -58,7 +58,7 @@ pub struct Join {
     pub name: String,
 }
 
-struct Session (Recipient<Message>, String);
+struct Session(Recipient<Message>, String);
 
 pub struct ChatServer {
     sessions: HashMap<usize, Session>,
@@ -78,7 +78,6 @@ impl Default for ChatServer {
 }
 
 impl ChatServer {
-
     fn send_message(&self, room: &str, message: &str, skip_id: String) {
         if let Some(sessions) = self.rooms.get(room) {
             for id in sessions {
@@ -97,7 +96,7 @@ impl ChatServer {
         for (_, sess) in &self.sessions {
             if sess.1 != skip_id {
                 let _ = sess.0.do_send(Message {
-                   text: message.to_owned(),
+                    text: message.to_owned(),
                 });
             }
         }
@@ -107,7 +106,7 @@ impl ChatServer {
         for (_, sess) in &self.sessions {
             if sess.1 == id {
                 let _ = sess.0.do_send(Message {
-                   text: message.to_owned(),
+                    text: message.to_owned(),
                 });
             }
         }
@@ -141,10 +140,6 @@ impl Handler<Disconnect> for ChatServer {
                 }
             }
         }
-
-        // for room in rooms {
-        //     self.send_message(&room, "Someone disconnect", 0);
-        // }
     }
 }
 

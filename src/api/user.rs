@@ -6,9 +6,8 @@ use serde::{Deserialize, Serialize};
 use super::models::success_nodata;
 use crate::db::user::{add, verification};
 
-use crate::api::models::{fail, success_with_data};
+use crate::api::models::{success_with_data};
 use crate::cache::token;
-use std::mem;
 
 type MysqlDbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 type RedisPool = r2d2_redis::r2d2::Pool<RedisConnectionManager>;

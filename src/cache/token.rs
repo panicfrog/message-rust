@@ -2,7 +2,7 @@ use super::error::Error;
 use base64::{decode, encode};
 use r2d2_redis::redis::{self, Commands, RedisResult};
 use r2d2_redis::{r2d2::PooledConnection, RedisConnectionManager};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use serde_json;
 
 pub trait Identifier {
@@ -15,7 +15,7 @@ where
     T: Identifier,
 {
     match get_id_from_value::<T>(value) {
-        Err(e) => Err(()),
+        Err(_) => Err(()),
         Ok(id) => {
             if let Some(r) = get_value::<T>(id, conn) {
                 Ok(Identifier::id(&r))
@@ -50,7 +50,7 @@ fn token_encrypt(value: String) -> String {
 
 fn token_decrypt(value: String) -> Result<String, ()> {
     match decode(value) {
-        Ok(v) => String::from_utf8(v).map_err(|e| ()),
+        Ok(v) => String::from_utf8(v).map_err(|_| ()),
         Err(_) => Err(()),
     }
 }

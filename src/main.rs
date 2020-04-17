@@ -6,7 +6,7 @@ extern crate r2d2_redis;
 
 use actix::*;
 use actix_web::{
-    cookie, http, middleware, middleware::errhandlers::ErrorHandlers, web, App, HttpServer,
+    http, middleware, middleware::errhandlers::ErrorHandlers, web, App, HttpServer,
 };
 use api::route::write_400;
 use chat::{route, server};

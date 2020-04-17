@@ -1,5 +1,5 @@
 use actix_web::middleware::errhandlers::ErrorHandlerResponse;
-use actix_web::{dev, http, web, HttpResponse, Result};
+use actix_web::{dev, http, Result};
 
 pub fn write_400<B>(mut res: dev::ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
     let s = if let Some(e) = res.response().error() {

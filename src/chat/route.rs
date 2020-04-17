@@ -1,12 +1,12 @@
 use super::server;
 use crate::cache::token::verification_value;
+use crate::chat::model::{ChatMessage, ChatMessageType};
 use actix::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use r2d2_redis::RedisConnectionManager;
 use serde::Deserialize;
 use std::time::{Duration, Instant};
-use crate::chat::model::{ChatMessage, ChatMessageType};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -124,7 +124,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             }
                         }
                         ChatMessageType::RoomMessage(room) => {
-                            self.addr.do_send(server::StrRoomMessage{
+                            self.addr.do_send(server::StrRoomMessage {
                                 id: self.user.clone(),
                                 msg: msg.content.unwrap_or_default(),
                                 room: room,

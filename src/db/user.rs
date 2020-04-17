@@ -42,12 +42,14 @@ pub fn verification(u_name: &str, pd: &str, conn: &MysqlConnection) -> Result<Qu
     deal_query_result(r)
 }
 
+#[allow(dead_code)]
 fn find_with_username(u_name: &str, conn: &MysqlConnection) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
     let r: QueryResult<QueryUser> = users.filter(user_name.eq(u_name)).first(conn);
     deal_query_result(r)
 }
 
+#[allow(dead_code)]
 fn find_with_id(u_id: i32, conn: &MysqlConnection) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
     let r: QueryResult<QueryUser> = users.filter(user_id.eq(u_id)).first(conn);

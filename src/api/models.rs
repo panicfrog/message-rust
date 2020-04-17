@@ -1,5 +1,5 @@
 use actix_web::HttpResponse;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use serde_repr::*;
 
 #[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
@@ -51,6 +51,7 @@ pub fn success_nodata(message: &str) -> HttpResponse {
     result.response()
 }
 
+#[allow(dead_code)]
 pub fn fail(message: &str) -> HttpResponse {
     let result: UserSuccessResponse<String> = UserSuccessResponse {
         message: String::from(message),
