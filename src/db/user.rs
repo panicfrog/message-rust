@@ -1,5 +1,4 @@
 use super::error::{deal_insert_result, deal_query_result, deal_update_result, Error};
-use super::establish_connection;
 use super::schema::users;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -43,34 +42,30 @@ pub fn verification(u_name: &str, pd: &str, conn: &MysqlConnection) -> Result<Qu
     deal_query_result(r)
 }
 
-fn find_with_username(u_name: &str) -> Result<QueryUser, Error> {
+fn find_with_username(u_name: &str, conn: &MysqlConnection) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
-    let connection = establish_connection();
-    let r: QueryResult<QueryUser> = users.filter(user_name.eq(u_name)).first(&connection);
+    let r: QueryResult<QueryUser> = users.filter(user_name.eq(u_name)).first(conn);
     deal_query_result(r)
 }
 
-fn find_with_id(u_id: i32) -> Result<QueryUser, Error> {
+fn find_with_id(u_id: i32, conn: &MysqlConnection) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
-
-    let connection = establish_connection();
-    let r: QueryResult<QueryUser> = users.filter(user_id.eq(u_id)).first(&connection);
+    let r: QueryResult<QueryUser> = users.filter(user_id.eq(u_id)).first(conn);
     deal_query_result(r)
 }
 
-pub fn change_passwd(u_name: String, pd: String) -> Result<(), Error> {
+pub fn change_passwd(u_name: String, pd: String, conn: &MysqlConnection) -> Result<(), Error> {
     use super::schema::users::dsl::*;
-    let u = find_with_username(u_name.as_str());
+    let u = find_with_username(u_name.as_str(), conn);
     match u {
         Ok(_u) => {
             // TODO: 是否给提示？
             if pd == _u.passwd {
                 Ok(())
             } else {
-                let connection = establish_connection();
                 let r = diesel::update(users.find(_u.user_id))
                     .set(passwd.eq(pd))
-                    .execute(&connection);
+                    .execute(conn);
                 deal_update_result(r)
             }
         }

@@ -1,4 +1,4 @@
-use super::model::{ChatMessage, ChatMessageType, ChatNameMessage, ChatNameMessageType};
+use super::model::{ChatMessage, ChatMessageType};
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
 use std::collections::{HashMap, HashSet};
@@ -24,14 +24,6 @@ pub struct Disconnect {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct RoomMessage {
-    pub id: usize,
-    pub msg: String,
-    pub room: String,
-}
-
-#[derive(Message)]
-#[rtype(result = "()")]
 pub struct StrRoomMessage {
     pub id: String,
     pub msg: String,
@@ -40,25 +32,10 @@ pub struct StrRoomMessage {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct P2PMessage {
-    pub id: usize,
-    pub msg: String,
-    pub other_id: usize,
-}
-
-#[derive(Message)]
-#[rtype(result = "()")]
 pub struct StrP2PMessage {
     pub id: String,
     pub msg: String,
     pub other_id: String,
-}
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct BoardcastMessage {
-    pub id: usize,
-    pub msg: String,
 }
 
 #[derive(Message)]
@@ -101,21 +78,8 @@ impl Default for ChatServer {
 }
 
 impl ChatServer {
-    fn send_message(&self, room: &str, message: &str, skip_id: usize) {
-        if let Some(sessions) = self.rooms.get(room) {
-            for id in sessions {
-                if *id != skip_id {
-                    if let Some(sess) = self.sessions.get(id) {
-                        let _ = sess.0.do_send(Message {
-                            text: message.to_owned(),
-                        });
-                    }
-                }
-            }
-        }
-    }
 
-    fn send_namebase_message(&self, room: &str, message: &str, skip_id: String) {
+    fn send_message(&self, room: &str, message: &str, skip_id: String) {
         if let Some(sessions) = self.rooms.get(room) {
             for id in sessions {
                 if let Some(sess) = self.sessions.get(id) {
@@ -129,17 +93,7 @@ impl ChatServer {
         }
     }
 
-    fn send_boardcast(&self, message: &str, skip_id: usize) {
-        for (id, sees) in &self.sessions {
-            if *id != skip_id {
-                let _ = sees.0.do_send(Message {
-                    text: message.to_owned(),
-                });
-            }
-        }
-    }
-
-    fn send_namebase_boardcart(&self, message: &str, skip_id: String) {
+    fn send_boardcart(&self, message: &str, skip_id: String) {
         for (_, sess) in &self.sessions {
             if sess.1 != skip_id {
                 let _ = sess.0.do_send(Message {
@@ -149,15 +103,7 @@ impl ChatServer {
         }
     }
 
-    fn send_p2p_message(&self, id: &usize, message: &str) {
-        if let Some(sess) = self.sessions.get(id) {
-            let _ = sess.0.do_send(Message {
-                text: message.to_owned(),
-            });
-        }
-    }
-
-    fn send_namebase_p2p_message(&self, id: String, message: &str) {
+    fn send_p2p_message(&self, id: String, message: &str) {
         for (_, sess) in &self.sessions {
             if sess.1 == id {
                 let _ = sess.0.do_send(Message {
@@ -202,9 +148,9 @@ impl Handler<Disconnect> for ChatServer {
     }
 }
 
-impl Handler<RoomMessage> for ChatServer {
+impl Handler<StrRoomMessage> for ChatServer {
     type Result = ();
-    fn handle(&mut self, msg: RoomMessage, _: &mut Self::Context) {
+    fn handle(&mut self, msg: StrRoomMessage, _: &mut Self::Context) {
         let room = msg.room.clone();
         let skip_id = msg.id.clone();
         let send_msg = ChatMessage {
@@ -218,25 +164,9 @@ impl Handler<RoomMessage> for ChatServer {
     }
 }
 
-impl Handler<StrRoomMessage> for ChatServer {
+impl Handler<StrP2PMessage> for ChatServer {
     type Result = ();
-    fn handle(&mut self, msg: StrRoomMessage, _: &mut Self::Context) {
-        let room = msg.room.clone();
-        let skip_id = msg.id.clone();
-        let send_msg = ChatNameMessage{
-            from: Some(msg.id),
-            style: ChatNameMessageType::RoomMessage(msg.room),
-            content: Some(msg.msg),
-            message_id: None,
-        };
-        let send_str = serde_json::to_string(&send_msg).unwrap();
-        self.send_namebase_message(&room, send_str.as_str(), skip_id);
-    }
-}
-
-impl Handler<P2PMessage> for ChatServer {
-    type Result = ();
-    fn handle(&mut self, msg: P2PMessage, _: &mut Self::Context) {
+    fn handle(&mut self, msg: StrP2PMessage, _: &mut Self::Context) {
         let other_id = msg.other_id.clone();
         let send_msg = ChatMessage {
             from: Some(msg.id),
@@ -245,28 +175,13 @@ impl Handler<P2PMessage> for ChatServer {
             message_id: None,
         };
         let send_str = serde_json::to_string(&send_msg).unwrap();
-        self.send_p2p_message(&other_id, send_str.as_str());
+        self.send_p2p_message(other_id, send_str.as_str());
     }
 }
 
-impl Handler<StrP2PMessage> for ChatServer {
+impl Handler<StrBoardcastMessage> for ChatServer {
     type Result = ();
-    fn handle(&mut self, msg: StrP2PMessage, _: &mut Self::Context) {
-        let other_id = msg.other_id.clone();
-        let send_msg = ChatNameMessage {
-            from: Some(msg.id),
-            style: ChatNameMessageType::OneToOne(msg.other_id),
-            content: Some(msg.msg),
-            message_id: None,
-        };
-        let send_str = serde_json::to_string(&send_msg).unwrap();
-        self.send_namebase_p2p_message(other_id, send_str.as_str());
-    }
-}
-
-impl Handler<BoardcastMessage> for ChatServer {
-    type Result = ();
-    fn handle(&mut self, msg: BoardcastMessage, _: &mut Self::Context) {
+    fn handle(&mut self, msg: StrBoardcastMessage, _: &mut Self::Context) {
         let send_msg = ChatMessage {
             from: Some(msg.id),
             style: ChatMessageType::Broadcast,
@@ -274,21 +189,7 @@ impl Handler<BoardcastMessage> for ChatServer {
             message_id: None,
         };
         let send_str = serde_json::to_string(&send_msg).unwrap();
-        self.send_boardcast(&send_str.as_str(), send_msg.from.unwrap());
-    }
-}
-
-impl Handler<StrBoardcastMessage> for ChatServer {
-    type Result = ();
-    fn handle(&mut self, msg: StrBoardcastMessage, _: &mut Self::Context) {
-        let send_msg = ChatNameMessage {
-            from: Some(msg.id),
-            style: ChatNameMessageType::Broadcast,
-            content: Some(msg.msg),
-            message_id: None,
-        };
-        let send_str = serde_json::to_string(&send_msg).unwrap();
-        self.send_namebase_boardcart(&send_str.as_str(), send_msg.from.unwrap());
+        self.send_boardcart(&send_str.as_str(), send_msg.from.unwrap());
     }
 }
 
