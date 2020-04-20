@@ -14,6 +14,9 @@ table! {
         id -> Integer,
         from -> Integer,
         to -> Integer,
+        content -> Varchar,
+        #[sql_name = "type"]
+        type_ -> Integer,
         create_time -> Timestamp,
         updata_time -> Nullable<Timestamp>,
         delete_time -> Nullable<Timestamp>,
@@ -24,7 +27,7 @@ table! {
     room (id) {
         id -> Integer,
         name -> Varchar,
-        description -> Nullable<Varchar>,
+        description -> Varchar,
         create_time -> Timestamp,
         updata_time -> Nullable<Timestamp>,
         delete_time -> Nullable<Timestamp>,
