@@ -2,6 +2,7 @@ use super::model::{ChatMessage, ChatMessageType};
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
 use std::collections::{HashMap};
+use log::*;
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -101,9 +102,8 @@ impl Actor for ChatServer {
 
 impl Handler<Connect> for ChatServer {
     type Result = usize;
-
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
-        println!("Someone joined");
+        log::debug!("{} is connected", msg.name);
         let id = self.rng.gen::<usize>();
         self.sessions.insert(id, Session(msg.addr, msg.name));
         id
