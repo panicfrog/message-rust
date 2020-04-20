@@ -10,6 +10,17 @@ table! {
 }
 
 table! {
+    friendship_request (id) {
+        id -> Integer,
+        user_id -> Integer,
+        content -> Varchar,
+        create_time -> Timestamp,
+        updata_time -> Nullable<Timestamp>,
+        delete_time -> Nullable<Timestamp>,
+    }
+}
+
+table! {
     message (id) {
         id -> Integer,
         from -> Integer,
@@ -57,12 +68,14 @@ table! {
     }
 }
 
+joinable!(friendship_request -> users (user_id));
 joinable!(message -> users (from));
 joinable!(room_members -> room (room_id));
 joinable!(room_members -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     friendship,
+    friendship_request,
     message,
     room,
     room_members,

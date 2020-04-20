@@ -9,7 +9,9 @@ pub enum Error {
     ForeignKeyViolation(String),
 }
 
+#[allow(bindings_with_variant_name)]
 #[allow(non_snake_case)]
+#[allow(unused_variables)]
 #[allow(dead_code)]
 pub fn deal_insert_result(r: QueryResult<usize>) -> Result<(), Error> {
     match r {

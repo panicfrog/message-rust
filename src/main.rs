@@ -3,7 +3,6 @@ extern crate diesel;
 extern crate base64;
 extern crate dotenv;
 extern crate r2d2_redis;
-#[macro_use]
 extern crate log;
 
 use actix::*;

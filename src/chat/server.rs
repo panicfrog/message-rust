@@ -2,7 +2,6 @@ use super::model::{ChatMessage, ChatMessageType};
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
 use std::collections::{HashMap};
-use log::*;
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -66,7 +65,7 @@ impl Default for ChatServer {
 impl ChatServer {
     fn send_messages(&self, users: &Vec<String>, message: &str, skip_id: String) {
                 for (_, sess) in &self.sessions {
-                    if (users.contains(&sess.1) && sess.1 != skip_id) {
+                    if users.contains(&sess.1) && sess.1 != skip_id {
                         let _ = sess.0.do_send(Message {
                             text: message.to_owned(),
                         });
