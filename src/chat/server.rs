@@ -1,7 +1,7 @@
 use super::model::{ChatMessage, ChatMessageType};
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -64,15 +64,14 @@ impl Default for ChatServer {
 
 impl ChatServer {
     fn send_messages(&self, users: &Vec<String>, message: &str, skip_id: String) {
-                for (_, sess) in &self.sessions {
-                    if users.contains(&sess.1) && sess.1 != skip_id {
-                        let _ = sess.0.do_send(Message {
-                            text: message.to_owned(),
-                        });
-                    }
-                }
+        for (_, sess) in &self.sessions {
+            if users.contains(&sess.1) && sess.1 != skip_id {
+                let _ = sess.0.do_send(Message {
+                    text: message.to_owned(),
+                });
+            }
         }
-
+    }
 
     fn send_boardcart(&self, message: &str, skip_id: String) {
         for (_, sess) in &self.sessions {
@@ -129,7 +128,6 @@ impl Handler<StrRoomMessage> for ChatServer {
         let send_str = serde_json::to_string(&send_msg).unwrap();
         self.send_messages(&msg.ids, send_str.as_str(), skip_id);
     }
-
 }
 
 impl Handler<P2PMessage> for ChatServer {

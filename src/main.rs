@@ -2,13 +2,11 @@
 extern crate diesel;
 extern crate base64;
 extern crate dotenv;
-extern crate r2d2_redis;
 extern crate log;
+extern crate r2d2_redis;
 
 use actix::*;
-use actix_web::{
-    http, middleware, middleware::errhandlers::ErrorHandlers, web, App, HttpServer,
-};
+use actix_web::{http, middleware, middleware::errhandlers::ErrorHandlers, web, App, HttpServer};
 use api::route::write_400;
 use chat::{route, server};
 use diesel::{r2d2::ConnectionManager, MysqlConnection};

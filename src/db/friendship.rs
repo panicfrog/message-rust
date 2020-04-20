@@ -22,7 +22,7 @@ struct InsertableFriends {
 }
 
 #[allow(dead_code)]
-fn get_friends_by_id(name: i32, conn: &MysqlConnection) -> Result<Vec<QueryFriendship>, Error>{
+fn get_friends_by_id(name: i32, conn: &MysqlConnection) -> Result<Vec<QueryFriendship>, Error> {
     use super::schema::friendship::dsl::*;
     let r = friendship
         .filter(user_id.eq(name))
@@ -31,7 +31,10 @@ fn get_friends_by_id(name: i32, conn: &MysqlConnection) -> Result<Vec<QueryFrien
 }
 
 #[allow(dead_code)]
-fn get_friends_by_friend_id(friend: i32, conn: &MysqlConnection) -> Result<Vec<QueryFriendship>, Error> {
+fn get_friends_by_friend_id(
+    friend: i32,
+    conn: &MysqlConnection,
+) -> Result<Vec<QueryFriendship>, Error> {
     use super::schema::friendship::dsl::*;
     let r = friendship
         .filter(friend_id.eq(friend))
@@ -40,7 +43,11 @@ fn get_friends_by_friend_id(friend: i32, conn: &MysqlConnection) -> Result<Vec<Q
 }
 
 #[allow(dead_code)]
-fn get_friend_by_name(name: i32, friend_name: i32, conn: &MysqlConnection) -> Result<QueryFriendship, Error> {
+fn get_friend_by_name(
+    name: i32,
+    friend_name: i32,
+    conn: &MysqlConnection,
+) -> Result<QueryFriendship, Error> {
     use super::schema::friendship::dsl::*;
     let r: QueryResult<QueryFriendship> = friendship
         .filter(friend_id.eq(friend_name))
@@ -61,7 +68,7 @@ fn add_friend_by_name(name: i32, friend_name: i32, conn: &MysqlConnection) -> Re
         friend_id: name.clone(),
     };
     let r = conn.transaction(|| {
-       let r1 = diesel::insert_into(friendship).values(&fs1).execute(conn);
+        let r1 = diesel::insert_into(friendship).values(&fs1).execute(conn);
         match r1 {
             Ok(s) => {
                 if s != 1 {
@@ -70,14 +77,12 @@ fn add_friend_by_name(name: i32, friend_name: i32, conn: &MysqlConnection) -> Re
                     let r2 = diesel::insert_into(friendship).values(&fs2).execute(conn);
                     match r2 {
                         Ok(s) => Ok(s),
-                        Err(e) => Err(e)
+                        Err(e) => Err(e),
                     }
                 }
-            },
-            Err(e) => Err(e)
+            }
+            Err(e) => Err(e),
         }
     });
     deal_insert_result(r)
 }
-
-

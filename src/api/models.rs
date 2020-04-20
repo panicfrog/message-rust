@@ -1,27 +1,27 @@
 use actix_web::HttpResponse;
-use serde::{Serialize};
+use serde::Serialize;
 use serde_repr::*;
 
 #[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
 #[repr(u8)]
-pub enum UserResponseState {
+pub enum ApiResponseState {
     Success = 0,
     Failed = 1,
 }
 
 #[derive(Serialize, Debug)]
-pub struct UserSuccessResponse<T: Serialize> {
+pub struct ApiResponse<T: Serialize> {
     pub message: String,
-    pub state: UserResponseState,
+    pub state: ApiResponseState,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<T>,
 }
 
-pub trait UserResponse {
+pub trait UserResp {
     fn response(&self) -> HttpResponse;
 }
 
-impl<T> UserResponse for T
+impl<T> UserResp for T
 where
     T: Serialize,
 {
@@ -34,28 +34,18 @@ pub fn success_with_data<T>(message: &str, data: T) -> HttpResponse
 where
     T: Serialize,
 {
-    UserSuccessResponse::<T> {
+    ApiResponse::<T> {
         message: String::from(message),
-        state: UserResponseState::Success,
+        state: ApiResponseState::Success,
         data: Some(data),
     }
     .response()
 }
 
 pub fn success_nodata(message: &str) -> HttpResponse {
-    let result: UserSuccessResponse<String> = UserSuccessResponse {
+    let result: ApiResponse<String> = ApiResponse {
         message: String::from(message),
-        state: UserResponseState::Success,
-        data: None,
-    };
-    result.response()
-}
-
-#[allow(dead_code)]
-pub fn fail(message: &str) -> HttpResponse {
-    let result: UserSuccessResponse<String> = UserSuccessResponse {
-        message: String::from(message),
-        state: UserResponseState::Failed,
+        state: ApiResponseState::Success,
         data: None,
     };
     result.response()

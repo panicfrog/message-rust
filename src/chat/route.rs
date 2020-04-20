@@ -6,8 +6,8 @@ use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use r2d2_redis::RedisConnectionManager;
 use serde::Deserialize;
-use std::time::{Duration, Instant};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -26,7 +26,6 @@ pub async fn chat_route(
     info: web::Query<WebsocketInfo>,
     redis_pool: web::Data<RedisPool>,
 ) -> Result<HttpResponse, Error> {
-
     let redis_conn = &mut redis_pool
         .get()
         .expect("countn't get redis connection from pool");
