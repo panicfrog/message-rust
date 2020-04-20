@@ -7,11 +7,12 @@ use actix_web_actors::ws;
 use r2d2_redis::RedisConnectionManager;
 use serde::Deserialize;
 use std::time::{Duration, Instant};
+use std::sync::Arc;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
-type RedisPool = r2d2_redis::r2d2::Pool<RedisConnectionManager>;
+pub type RedisPool = r2d2_redis::r2d2::Pool<RedisConnectionManager>;
 
 #[derive(Deserialize)]
 pub struct WebsocketInfo {
@@ -25,6 +26,7 @@ pub async fn chat_route(
     info: web::Query<WebsocketInfo>,
     redis_pool: web::Data<RedisPool>,
 ) -> Result<HttpResponse, Error> {
+
     let redis_conn = &mut redis_pool
         .get()
         .expect("countn't get redis connection from pool");
@@ -37,6 +39,7 @@ pub async fn chat_route(
                 addr: srv.get_ref().clone(),
                 token: info.token.clone(),
                 user: id,
+                redis_poll: redis_pool.into_inner(),
             };
             ws::start(session, &req, stream)
         }
@@ -50,6 +53,7 @@ struct WsChatSession {
     addr: Addr<server::ChatServer>,
     token: String,
     user: String,
+    redis_poll: Arc<RedisPool>,
 }
 
 impl Actor for WsChatSession {
@@ -112,7 +116,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                 match msg {
                     Ok(msg) => match msg.style {
                         ChatMessageType::OneToOne(id) => {
-                            self.addr.do_send(server::StrP2PMessage {
+                            self.addr.do_send(server::P2PMessage {
                                 id: self.user.clone(),
                                 msg: msg.content.unwrap_or_default(),
                                 other_id: id,
@@ -124,8 +128,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             }
                         }
                         ChatMessageType::RoomMessage(room) => {
+                            // TODO: get members from mysql
                             self.addr.do_send(server::StrRoomMessage {
                                 id: self.user.clone(),
+                                ids: vec![],
                                 msg: msg.content.unwrap_or_default(),
                                 room: room,
                             });
@@ -136,20 +142,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             }
                         }
                         ChatMessageType::Broadcast => {
-                            self.addr.do_send(server::StrBoardcastMessage {
+                            self.addr.do_send(server::BoardcastMessage {
                                 id: self.user.clone(),
                                 msg: msg.content.unwrap_or_default(),
-                            });
-                            if let Some(message_id) = msg.message_id {
-                                let ack =
-                                    serde_json::to_string(&ChatMessage::ack(message_id)).unwrap();
-                                ctx.text(ack);
-                            }
-                        }
-                        ChatMessageType::Join(room) => {
-                            self.addr.do_send(server::Join {
-                                id: self.id,
-                                name: room,
                             });
                             if let Some(message_id) = msg.message_id {
                                 let ack =
@@ -181,6 +176,11 @@ impl WsChatSession {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
                 println!("Websocket Client heartbeat failed, disconnecting");
+                ctx.stop();
+                return;
+            }
+            let conn = &mut act.redis_poll.get().expect("get redis connection error");
+            if verification_value::<crate::api::user::User>(act.token.clone(), conn).is_err() {
                 ctx.stop();
                 return;
             }

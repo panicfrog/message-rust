@@ -7,7 +7,6 @@ pub enum ChatMessageType {
     RoomMessage(String),
     Broadcast,
     // action
-    Join(String),
     // message  ack
     Ack,
 }

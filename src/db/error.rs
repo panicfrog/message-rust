@@ -1,6 +1,5 @@
-use super::schema::users;
 use diesel::QueryResult;
-
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Error {
     InsertNumError,
@@ -10,6 +9,8 @@ pub enum Error {
     ForeignKeyViolation(String),
 }
 
+#[allow(non_snake_case)]
+#[allow(dead_code)]
 pub fn deal_insert_result(r: QueryResult<usize>) -> Result<(), Error> {
     match r {
         Ok(s) => {

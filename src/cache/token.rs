@@ -1,7 +1,6 @@
 use super::error::Error;
 use base64::{decode, encode};
 use r2d2_redis::redis::{self, Commands, RedisResult};
-use r2d2_redis::{r2d2::PooledConnection, RedisConnectionManager};
 use serde::{Serialize};
 use serde_json;
 

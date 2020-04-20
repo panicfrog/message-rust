@@ -2,8 +2,8 @@ use super::error::{deal_insert_result, deal_query_result, deal_update_result, Er
 use super::schema::users;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use diesel::result::DatabaseErrorKind::UniqueViolation;
 
+#[allow(dead_code)]
 #[derive(Queryable)]
 pub struct QueryUser {
     pub user_id: i32,
@@ -56,6 +56,7 @@ fn find_with_id(u_id: i32, conn: &MysqlConnection) -> Result<QueryUser, Error> {
     deal_query_result(r)
 }
 
+#[allow(dead_code)]
 pub fn change_passwd(u_name: String, pd: String, conn: &MysqlConnection) -> Result<(), Error> {
     use super::schema::users::dsl::*;
     let u = find_with_username(u_name.as_str(), conn);
