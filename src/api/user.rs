@@ -1,15 +1,15 @@
 use super::error::ApiError;
 use crate::db::error::Error as DBError;
 use actix_threadpool::BlockingError;
-use actix_web::{web, HttpResponse, ResponseError, Result};
+use actix_web::{web, HttpResponse, Result};
 use diesel::{r2d2::ConnectionManager, MysqlConnection};
 use r2d2_redis::RedisConnectionManager;
 use serde::{Deserialize, Serialize};
 
-use super::models::success_nodata;
+use super::response::success_nodata;
 use crate::db::user::{add, verification};
 
-use crate::api::models::success_with_data;
+use crate::api::response::success_with_data;
 use crate::cache::token;
 
 type MysqlDbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
@@ -60,7 +60,7 @@ pub async fn login(
         web::block(move || verification(_username.as_str(), _password.as_str(), &conn)).await;
     let te = query_res.map_err(|e| match e {
         BlockingError::Canceled => ApiError::InternalError,
-        BlockingError::Error(e) => {
+        BlockingError::Error(_) => {
             ApiError::UserError("username or password is invalid".to_owned())
         }
     });

@@ -36,21 +36,27 @@ pub fn verification(u_name: &str, pd: &str, conn: &MysqlConnection) -> Result<Qu
     let r: QueryResult<QueryUser> = users
         .filter(user_name.eq(u_name))
         .filter(passwd.eq(pd))
+        .filter(delete_time.is_null())
         .first(conn);
     deal_query_result(r)
 }
 
-#[allow(dead_code)]
-fn find_with_username(u_name: &str, conn: &MysqlConnection) -> Result<QueryUser, Error> {
+pub fn find_with_username(u_name: &str, conn: &MysqlConnection) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
-    let r: QueryResult<QueryUser> = users.filter(user_name.eq(u_name)).first(conn);
+    let r: QueryResult<QueryUser> = users
+        .filter(user_name.eq(u_name))
+        .filter(delete_time.is_null())
+        .first(conn);
     deal_query_result(r)
 }
 
 #[allow(dead_code)]
 fn find_with_id(u_id: i32, conn: &MysqlConnection) -> Result<QueryUser, Error> {
     use super::schema::users::dsl::*;
-    let r: QueryResult<QueryUser> = users.filter(user_id.eq(u_id)).first(conn);
+    let r: QueryResult<QueryUser> = users
+        .filter(user_id.eq(u_id))
+        .filter(delete_time.is_null())
+        .first(conn);
     deal_query_result(r)
 }
 
@@ -58,18 +64,14 @@ fn find_with_id(u_id: i32, conn: &MysqlConnection) -> Result<QueryUser, Error> {
 pub fn change_passwd(u_name: String, pd: String, conn: &MysqlConnection) -> Result<(), Error> {
     use super::schema::users::dsl::*;
     let u = find_with_username(u_name.as_str(), conn);
-    match u {
-        Ok(_u) => {
-            // TODO: 是否给提示？
-            if pd == _u.passwd {
-                Ok(())
-            } else {
-                let r = diesel::update(users.find(_u.user_id))
-                    .set(passwd.eq(pd))
-                    .execute(conn);
-                deal_update_result(r)
-            }
+    u.and_then(|_u| {
+        if pd == _u.passwd {
+            Ok(())
+        } else {
+            let r = diesel::update(users.find(_u.user_id))
+                .set(passwd.eq(pd))
+                .execute(conn);
+            deal_update_result(r)
         }
-        Err(e) => Err(e),
-    }
+    })
 }

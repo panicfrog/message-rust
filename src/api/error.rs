@@ -1,8 +1,9 @@
-use super::models::{ApiResponse, ApiResponseState};
+use super::response::{ApiResponse, ApiResponseState};
 use actix_web::dev::HttpResponseBuilder;
 use actix_web::{error, http::header, http::StatusCode, HttpResponse};
 use failure::Fail;
 
+#[allow(dead_code)]
 #[derive(Fail, Debug)]
 pub enum ApiError {
     #[fail(display = "internal error")]

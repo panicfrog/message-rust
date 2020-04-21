@@ -1,5 +1,5 @@
 pub mod error;
-mod models;
+mod message;
 mod response;
 mod room;
 pub mod route;
